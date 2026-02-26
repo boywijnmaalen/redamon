@@ -5,9 +5,35 @@
 # =============================================================================
 # Swaps the production webapp build for a dev container with Next.js fast
 # refresh. Source code is volume-mounted so every save is reflected instantly.
+#
+# OrbStack Linux VM:
+#   Docker runs on macOS and resolves bind-mount paths against the Mac
+#   filesystem, NOT the Linux VM overlay. Use --project-directory with the
+#   Mac-side project path so relative volumes (./webapp, ./mcp/servers, etc.)
+#   resolve correctly.
+#
+#   Because --project-directory changes where Docker Compose looks for .env
+#   (to the Mac path, which the Linux VM can't access), you must also pass
+#   --env-file to point at the VM-accessible .env:
+#
+#     docker compose \
+#       --project-directory /Users/<you>/Projects/misc/redamon \
+#       --env-file .env \
+#       -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+#   Set HOST_PROJECT_DIR in .env to provide the Mac-side project path:
+#     HOST_PROJECT_DIR=/Users/<you>/Projects/misc/redamon
 # =============================================================================
 
 services:
+  # Override $PWD-based env vars so the recon-orchestrator passes Mac-side
+  # paths when spawning scan containers via Docker.
+  recon-orchestrator:
+    environment:
+      RECON_PATH: ${HOST_PROJECT_DIR:-${PWD}}/recon
+      GVM_SCAN_PATH: ${HOST_PROJECT_DIR:-${PWD}}/gvm_scan
+      GITHUB_HUNT_PATH: ${HOST_PROJECT_DIR:-${PWD}}/github_secret_hunt
+
   webapp:
     build: !reset null
     image: node:22-alpine

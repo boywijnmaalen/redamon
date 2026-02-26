@@ -341,6 +341,20 @@ services:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme123}
+      # AI provider keys (from root .env)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_COMPAT_BASE_URL: ${OPENAI_COMPAT_BASE_URL:-}
+      OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+      # Google Vertex AI (Anthropic Claude via Vertex)
+      ANTHROPIC_VERTEX_PROJECT_ID: ${ANTHROPIC_VERTEX_PROJECT_ID:-}
+      CLOUD_ML_REGION: ${CLOUD_ML_REGION:-us-east5}
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
       # WebSocket config
       WS_HEARTBEAT_INTERVAL: "30"
       WS_TIMEOUT: "300"
@@ -359,6 +373,7 @@ services:
       - ./agentic:/app
       - ./agentic/logs:/app/logs
       - cypherfix-repos:/tmp/cypherfix-repos
+      - ${GOOGLE_ADC_PATH:-/dev/null}:/root/.config/gcloud/application_default_credentials.json:ro
     depends_on:
       neo4j:
         condition: service_healthy

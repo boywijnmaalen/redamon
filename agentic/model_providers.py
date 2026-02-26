@@ -2,16 +2,31 @@
 Model provider discovery for RedAmon Agent.
 
 Fetches available models from configured AI providers (OpenAI, Anthropic,
-OpenRouter, AWS Bedrock) and returns them in a unified format for the frontend.
+OpenAI-compatible endpoints, OpenRouter, AWS Bedrock, Google Vertex AI) and
+returns them in a unified format for the frontend.
 Provider keys come from user settings in the database (passed as params).
+Results are cached in memory for 1 hour when using env-var fallback mode.
 """
 
 import logging
+import os
+import time
 from typing import Any
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# In-memory cache (used only for env-var fallback mode)
+# ---------------------------------------------------------------------------
+_cache: dict[str, list[dict]] = {}
+_cache_ts: float = 0.0
+_CACHE_TTL = 3600  # 1 hour
+
+
+def _is_cache_valid() -> bool:
+    return bool(_cache) and (time.time() - _cache_ts) < _CACHE_TTL
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +84,40 @@ async def fetch_openai_models(api_key: str = "") -> list[dict]:
 
     # Sort: newest/largest first (reverse alphabetical is a rough proxy)
     models.sort(key=lambda m: m["id"], reverse=True)
+    return models
+
+
+# ---------------------------------------------------------------------------
+# OpenAI-compatible endpoints
+# ---------------------------------------------------------------------------
+async def fetch_openai_compat_models(
+    base_url: str = "",
+    api_key: str = "",
+) -> list[dict]:
+    """Fetch models from an OpenAI-compatible API endpoint."""
+    base_url = base_url or os.getenv("OPENAI_COMPAT_BASE_URL", "")
+    api_key = api_key or os.getenv("OPENAI_COMPAT_API_KEY", "")
+    if not base_url:
+        return []
+
+    url = f"{base_url.rstrip('/')}/models"
+    headers = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+
+    data = resp.json().get("data", [])
+    models = []
+    for m in data:
+        mid = m.get("id", "")
+        models.append(_model(
+            id=f"openai_compat/{mid}",
+            name=mid,
+            description="OpenAI-Compatible",
+        ))
     return models
 
 
@@ -219,6 +268,32 @@ async def fetch_bedrock_models(
 
 
 # ---------------------------------------------------------------------------
+# Google Vertex AI (Anthropic Claude models)
+# ---------------------------------------------------------------------------
+
+# Claude models available on Google Vertex AI.
+_VERTEX_CLAUDE_MODELS = [
+    _model("vertex/claude-opus-4-6", "Claude Opus 4.6",
+           200_000, "Most capable model"),
+    _model("vertex/claude-sonnet-4-6", "Claude Sonnet 4.6",
+           200_000, "Best balance of performance and speed"),
+    _model("vertex/claude-opus-4-5", "Claude Opus 4.5",
+           200_000, "Previous-gen most capable"),
+    _model("vertex/claude-sonnet-4-5", "Claude Sonnet 4.5",
+           200_000, "Previous-gen balanced"),
+    _model("vertex/claude-opus-4-1", "Claude Opus 4.1",
+           200_000, "Extended thinking capable"),
+    _model("vertex/claude-haiku-4-5", "Claude Haiku 4.5",
+           200_000, "Fast and affordable"),
+]
+
+
+async def fetch_vertex_models() -> list[dict]:
+    """Return Claude models available on Google Vertex AI."""
+    return list(_VERTEX_CLAUDE_MODELS)
+
+
+# ---------------------------------------------------------------------------
 # Aggregator
 # ---------------------------------------------------------------------------
 async def fetch_all_models(
@@ -239,8 +314,48 @@ async def fetch_all_models(
 
     # If no providers from DB, use env var fallback with caching
     if providers is None:
-        # No env-var fallback — keys come exclusively from DB providers
-        return {}
+        if _is_cache_valid():
+            return _cache
+
+        import asyncio
+
+        tasks: dict[str, Any] = {}
+
+        if os.getenv("OPENAI_API_KEY"):
+            tasks["OpenAI (Direct)"] = fetch_openai_models(api_key=os.getenv("OPENAI_API_KEY", ""))
+        if os.getenv("OPENAI_COMPAT_BASE_URL"):
+            tasks["OpenAI-Compatible"] = fetch_openai_compat_models()
+        if os.getenv("ANTHROPIC_API_KEY"):
+            tasks["Anthropic (Direct)"] = fetch_anthropic_models(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
+        if os.getenv("OPENROUTER_API_KEY"):
+            tasks["OpenRouter"] = fetch_openrouter_models(api_key=os.getenv("OPENROUTER_API_KEY", ""))
+        if os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+            tasks["AWS Bedrock"] = fetch_bedrock_models(
+                access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
+                secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", ""),
+                region=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+            )
+        if os.getenv("ANTHROPIC_VERTEX_PROJECT_ID"):
+            tasks["Google Vertex AI"] = fetch_vertex_models()
+
+        if not tasks:
+            return {}
+
+        gathered = await asyncio.gather(*tasks.values(), return_exceptions=True)
+        results: dict[str, list[dict]] = {}
+        for prov_name, result in zip(tasks.keys(), gathered):
+            if isinstance(result, Exception):
+                logger.warning(f"Failed to fetch models from {prov_name}: {result}")
+                results[prov_name] = []
+            else:
+                results[prov_name] = result
+
+        total = sum(len(v) for v in results.values())
+        logger.info(f"Fetched {total} models from {len(results)} providers (env-var fallback)")
+
+        _cache = results
+        _cache_ts = time.time()
+        return results
 
     # --- DB-driven mode: build tasks from provider configs ---
     import asyncio
@@ -263,6 +378,8 @@ async def fetch_all_models(
                 access_key_id=p.get("awsAccessKeyId", ""),
                 secret_access_key=p.get("awsSecretKey", ""),
             )
+        elif ptype == "vertex":
+            tasks_db[f"Google Vertex AI ({pname})"] = fetch_vertex_models()
         elif ptype == "openai_compatible":
             # Single model entry — no discovery needed
             model_id = p.get("modelIdentifier", "")

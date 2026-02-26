@@ -72,7 +72,18 @@ class AgentOrchestrator:
 
     def __init__(self):
         """Initialize the orchestrator with configuration."""
-        # Infrastructure-only env vars (stay in docker-compose)
+        # Infrastructure env vars (stay in docker-compose)
+        # AI provider keys (env-var fallback; primary source is DB user settings)
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_compat_api_key = os.getenv("OPENAI_COMPAT_API_KEY")
+        self.openai_compat_base_url = os.getenv("OPENAI_COMPAT_BASE_URL")
+        self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+        self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+        self.aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+        self.aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+        self.aws_region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+        self.vertex_project_id = os.getenv("ANTHROPIC_VERTEX_PROJECT_ID")
+        self.vertex_region = os.getenv("CLOUD_ML_REGION", "us-east5")
         self.neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
         self.neo4j_user = os.getenv("NEO4J_USER", "neo4j")
         self.neo4j_password = os.getenv("NEO4J_PASSWORD")
