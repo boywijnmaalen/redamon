@@ -171,10 +171,13 @@ def build_nuclei_command(
     if not interactsh:
         cmd.append("-no-interactsh")
     
+    # Custom User-Agent header for identification
+    cmd.extend(["-H", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"])
+
     # Proxy for Tor
     if use_proxy:
         cmd.extend(["-proxy", "socks5://127.0.0.1:9050"])
-    
+
     return cmd
 
 

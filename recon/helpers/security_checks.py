@@ -64,7 +64,7 @@ def _analyze_redirect_chain(ip: str, scheme: str, timeout: int = 10) -> Dict:
             timeout=timeout,
             allow_redirects=False,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
         result["initial_status_code"] = initial_response.status_code
         
@@ -79,7 +79,7 @@ def _analyze_redirect_chain(ip: str, scheme: str, timeout: int = 10) -> Dict:
                     timeout=timeout,
                     allow_redirects=True,
                     verify=False,
-                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
                 )
                 result["final_url"] = final_response.url
                 result["redirect_count"] = len(final_response.history)
@@ -125,7 +125,7 @@ def check_direct_ip_http(ip: str, timeout: int = 10) -> Optional[Dict]:
             url,
             timeout=timeout,
             allow_redirects=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         if response.status_code < 500:
@@ -207,7 +207,7 @@ def check_direct_ip_https(ip: str, timeout: int = 10) -> Optional[Dict]:
             timeout=timeout,
             allow_redirects=False,
             verify=False,  # Ignore cert errors for IP-based access
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         if response.status_code < 500:
@@ -296,7 +296,7 @@ def check_ip_api_exposed(ip: str, timeout: int = 10) -> Optional[Dict]:
                 timeout=timeout,
                 allow_redirects=False,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0",
                     "Accept": "application/json",
                 }
             )
@@ -351,7 +351,7 @@ def check_waf_bypass(
             timeout=timeout,
             allow_redirects=False,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         # Try accessing via direct IP with Host header
@@ -362,7 +362,7 @@ def check_waf_bypass(
             allow_redirects=False,
             verify=False,
             headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0",
                 "Host": subdomain,  # Set Host header to bypass virtual hosting
             }
         )
@@ -702,7 +702,7 @@ def check_security_headers(
             timeout=timeout,
             allow_redirects=True,
             verify=False,  # Allow self-signed for testing
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         # Only check successful responses
@@ -761,7 +761,7 @@ def check_cache_control_missing(hostname: str, port: int = 443, timeout: int = 1
             timeout=timeout,
             allow_redirects=True,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         if response.status_code != 200:
@@ -830,7 +830,7 @@ def check_login_no_https(hostname: str, timeout: int = 10) -> List[Dict]:
                 url,
                 timeout=timeout,
                 allow_redirects=False,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
             )
 
             # Check if response contains login form indicators
@@ -885,7 +885,7 @@ def check_session_cookies(hostname: str, timeout: int = 10) -> List[Dict]:
             timeout=timeout,
             allow_redirects=True,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         # Check Set-Cookie headers
@@ -959,7 +959,7 @@ def check_basic_auth_no_tls(hostname: str, timeout: int = 10) -> Optional[Dict]:
             url,
             timeout=timeout,
             allow_redirects=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         # Check for WWW-Authenticate header with Basic auth
@@ -1425,7 +1425,7 @@ def check_kubernetes_api_exposed(ip: str, timeout: int = 10) -> Optional[Dict]:
                 url,
                 timeout=timeout,
                 verify=False,
-                headers={"User-Agent": "Mozilla/5.0"}
+                headers={"User-Agent": "Mozilla/5.0 RedAmon/1.0"}
             )
 
             # Check for Kubernetes API response
@@ -1614,7 +1614,7 @@ def check_csp_unsafe_inline(hostname: str, timeout: int = 10) -> Optional[Dict]:
             timeout=timeout,
             allow_redirects=True,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         csp = response.headers.get('Content-Security-Policy', '')
@@ -1668,7 +1668,7 @@ def check_insecure_form_action(hostname: str, timeout: int = 10) -> List[Dict]:
             timeout=timeout,
             allow_redirects=True,
             verify=False,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
         )
 
         if response.status_code == 200:
@@ -1815,7 +1815,7 @@ def check_no_rate_limiting(urls: List[str], hostname: str, timeout: int = 5) -> 
                 timeout=timeout,
                 verify=False,
                 allow_redirects=True,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
             )
 
             # Skip if endpoint doesn't exist
@@ -1833,7 +1833,7 @@ def check_no_rate_limiting(urls: List[str], hostname: str, timeout: int = 5) -> 
                         timeout=timeout,
                         verify=False,
                         data={"username": f"test{i}", "password": "test"},
-                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
+                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 RedAmon/1.0"}
                     )
 
                     # Check for rate limiting indicators
