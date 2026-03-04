@@ -21,6 +21,17 @@ ENV PYTHONPATH=/app
 # Set working directory
 WORKDIR /app
 
+# need to add docker source
+RUN apt-get -y update && apt-get -y upgrade && \
+    apt-get -y install git ca-certificates curl && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+   tee /etc/apt/sources.list.d/docker.list > /dev/null
+
 # Install system dependencies
 # - Docker CLI for orchestrating ProjectDiscovery containers
 # - Tor and proxychains for anonymous scanning
@@ -29,7 +40,7 @@ WORKDIR /app
 # - Build tools for Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Docker CLI (to communicate with host Docker daemon)
-    docker.io \
+    docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
     # Tor and proxychains for anonymous scanning
     tor \
     proxychains4 \
