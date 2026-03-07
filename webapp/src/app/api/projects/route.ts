@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
+const AGENT_API_URL = process.env.AGENT_API_URL || 'http://localhost:8080'
+
 // GET /api/projects - List projects (optional user_id filter)
 export async function GET(request: NextRequest) {
   try {
@@ -66,6 +68,31 @@ export async function POST(request: NextRequest) {
         { error: 'User not found' },
         { status: 404 }
       )
+    }
+
+    // Target guardrail: check if domain/IPs are allowed before creating
+    try {
+      const guardrailResponse = await fetch(`${AGENT_API_URL}/guardrail/check-target`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_domain: ipMode ? '' : (targetDomain || ''),
+          target_ips: ipMode ? (optionalParams.targetIps || []) : [],
+        }),
+      })
+
+      if (guardrailResponse.ok) {
+        const guardrailResult = await guardrailResponse.json()
+        if (guardrailResult.allowed === false) {
+          return NextResponse.json(
+            { error: `Target blocked by guardrail: ${guardrailResult.reason}` },
+            { status: 403 }
+          )
+        }
+      }
+      // If guardrail is unreachable or returns non-OK, fail open (allow)
+    } catch (guardrailError) {
+      console.warn('Guardrail check failed, proceeding with project creation:', guardrailError)
     }
 
     // Create project with required fields and any optional params

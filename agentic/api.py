@@ -99,6 +99,73 @@ class HealthResponse(BaseModel):
 # =============================================================================
 
 
+# =============================================================================
+# TARGET GUARDRAIL — LLM-based check before project creation
+# =============================================================================
+
+class GuardrailRequest(BaseModel):
+    """Request model for target guardrail check."""
+    target_domain: str = ""
+    target_ips: list[str] = []
+    project_id: str = ""
+
+
+@app.post("/guardrail/check-target", tags=["Guardrail"])
+async def check_target_guardrail(body: GuardrailRequest):
+    """
+    Check if a target domain or IP list is safe to scan.
+
+    Uses the LLM to evaluate whether the target is a well-known public service,
+    government website, or major company that the user is unlikely authorized to test.
+    For IPs, performs reverse DNS to resolve hostnames before checking.
+
+    Fails open: returns allowed=True if LLM is unavailable or any error occurs.
+    """
+    from guardrail import check_target_allowed
+    from project_settings import DEFAULT_AGENT_SETTINGS
+
+    if not orchestrator or not orchestrator._initialized:
+        return {"allowed": True, "reason": "Agent not initialized, guardrail skipped"}
+
+    # Ensure LLM is set up
+    if not orchestrator.llm:
+        if body.project_id:
+            try:
+                orchestrator._apply_project_settings(body.project_id)
+            except Exception as e:
+                logger.warning(f"Guardrail: failed to load project settings: {e}")
+        # Still no LLM? Bootstrap with default model (no project_id at creation time)
+        if not orchestrator.llm:
+            try:
+                orchestrator.model_name = DEFAULT_AGENT_SETTINGS['OPENAI_MODEL']
+                orchestrator._setup_llm()
+                logger.info(f"Guardrail: bootstrapped LLM with default model {orchestrator.model_name}")
+            except Exception as e:
+                logger.warning(f"Guardrail: failed to bootstrap default LLM: {e}")
+                return {"allowed": True, "reason": "LLM not configured, guardrail skipped"}
+
+    try:
+        result = await check_target_allowed(
+            orchestrator.llm,
+            target_domain=body.target_domain,
+            target_ips=body.target_ips,
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Guardrail error: {e}")
+        return {"allowed": True, "reason": f"Guardrail error: {str(e)}"}
+
+
+@app.post("/emergency-stop-all", tags=["System"])
+async def emergency_stop_all():
+    """Emergency stop: cancel every running agent task immediately."""
+    if not ws_manager:
+        return JSONResponse(content={"stopped": 0}, status_code=503)
+    stopped = await ws_manager.stop_all()
+    logger.warning(f"Emergency stop: cancelled {stopped} agent task(s)")
+    return {"stopped": stopped}
+
+
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health():
     """

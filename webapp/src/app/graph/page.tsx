@@ -605,6 +605,30 @@ export default function GraphPage() {
   const handleResumeGithubHunt = useCallback(async () => { await resumeGithubHunt() }, [resumeGithubHunt])
   const handleStopGithubHunt = useCallback(async () => { await stopGithubHunt() }, [stopGithubHunt])
 
+  // Emergency Pause All — freezes every running pipeline and agent at once
+  const isAnyPipelineRunning = isReconRunning || isGvmRunning || isGithubHuntRunning || isAgentRunning
+  const [isEmergencyPausing, setIsEmergencyPausing] = useState(false)
+  const handleEmergencyPauseAll = useCallback(async () => {
+    setIsEmergencyPausing(true)
+    try {
+      const tasks: Promise<unknown>[] = []
+      if (reconState?.status === 'running' || reconState?.status === 'starting') {
+        tasks.push(pauseRecon())
+      }
+      if (gvmState?.status === 'running' || gvmState?.status === 'starting') {
+        tasks.push(pauseGvm())
+      }
+      if (githubHuntState?.status === 'running' || githubHuntState?.status === 'starting') {
+        tasks.push(pauseGithubHunt())
+      }
+      // Stop all running AI agent conversations
+      tasks.push(fetch('/api/agent/emergency-stop-all', { method: 'POST' }))
+      await Promise.allSettled(tasks)
+    } finally {
+      setIsEmergencyPausing(false)
+    }
+  }, [reconState?.status, gvmState?.status, githubHuntState?.status, pauseRecon, pauseGvm, pauseGithubHunt])
+
   // Show message if no project is selected
   if (!projectLoading && !projectId) {
     return (
@@ -665,6 +689,10 @@ export default function GraphPage() {
         isGithubHuntLogsOpen={activeLogsDrawer === 'githubHunt'}
         // Stealth mode
         stealthMode={currentProject?.stealthMode}
+        // Emergency Pause All
+        onEmergencyPauseAll={handleEmergencyPauseAll}
+        isAnyPipelineRunning={isAnyPipelineRunning}
+        isEmergencyPausing={isEmergencyPausing}
         // Agent status
         agentActiveCount={agentSummary.activeCount}
         agentConversations={agentSummary.conversations}

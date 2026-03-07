@@ -34,7 +34,11 @@ export default function ProjectSettingsPage() {
 
       router.push(`/graph?project=${projectId}`)
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to update project')
+      const message = error instanceof Error ? error.message : 'Failed to update project'
+      if (message.toLowerCase().includes('guardrail')) {
+        throw error // Let ProjectForm handle guardrail errors with its modal
+      }
+      alert(message)
     }
   }
 

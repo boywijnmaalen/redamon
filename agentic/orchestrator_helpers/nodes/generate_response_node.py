@@ -50,6 +50,11 @@ async def generate_response_node(
             "_abort_transition": False,
         }
 
+    # If guardrail blocked the target, the AIMessage is already in state — nothing to generate
+    if state.get("_guardrail_blocked"):
+        logger.info(f"[{user_id}/{project_id}/{session_id}] Guardrail blocked — skipping report generation")
+        return {}
+
     # Determine response tier based on state signals (no LLM call)
     tier = determine_response_tier(
         execution_trace=state.get("execution_trace", []),

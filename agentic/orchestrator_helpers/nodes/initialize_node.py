@@ -2,7 +2,7 @@
 
 import logging
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from state import (
     AgentState,
@@ -19,6 +19,75 @@ from orchestrator_helpers.phase import classify_attack_path, determine_phase_for
 from project_settings import get_setting
 
 logger = logging.getLogger(__name__)
+
+
+def _build_guardrail_block(user_id, project_id, session_id, target_desc, reason) -> dict:
+    """Build state update that blocks the agent with a guardrail message."""
+    return {
+        "messages": [AIMessage(content=(
+            f"**Scope Guardrail: Target Blocked**\n\n"
+            f"The target `{target_desc}` has been blocked by the security guardrail.\n\n"
+            f"**Reason:** {reason}\n\n"
+            f"This guardrail prevents scanning well-known public services, government websites, "
+            f"and major companies that you are unlikely authorized to test. "
+            f"Please create a new project with a target you are authorized to scan."
+        ))],
+        "task_complete": True,
+        "completion_reason": f"Guardrail blocked: {reason}",
+        "_guardrail_blocked": True,
+        "user_id": user_id,
+        "project_id": project_id,
+        "session_id": session_id,
+    }
+
+
+async def _run_scope_guardrail(llm, user_id, project_id, session_id) -> dict | None:
+    """Run LLM-based guardrail check on the project's target scope.
+
+    FAIL CLOSED: if the LLM is unavailable or errors occur, the agent refuses
+    to proceed. This is intentional — the agent must never blindly trust
+    project settings, even if the creation-time guardrail was bypassed.
+
+    Returns a state update dict if blocked, or None if allowed.
+    """
+    from guardrail import check_target_allowed
+
+    target_domain = get_setting('TARGET_DOMAIN', '')
+    ip_mode = get_setting('IP_MODE', False)
+    target_ips = get_setting('TARGET_IPS', [])
+
+    # Nothing to check (no target configured yet)
+    if not target_domain and not target_ips:
+        return None
+
+    target_desc = target_domain if not ip_mode else ", ".join(target_ips[:5])
+
+    try:
+        result = await check_target_allowed(
+            llm,
+            target_domain='' if ip_mode else target_domain,
+            target_ips=target_ips if ip_mode else [],
+        )
+
+        if not result.get("allowed", True):
+            reason = result.get("reason", "Target not authorized")
+            logger.warning(
+                f"[{user_id}/{project_id}/{session_id}] GUARDRAIL BLOCKED: {reason}"
+            )
+            return _build_guardrail_block(user_id, project_id, session_id, target_desc, reason)
+
+    except Exception as e:
+        # FAIL CLOSED — agent must not proceed if it cannot verify the target
+        logger.error(
+            f"[{user_id}/{project_id}/{session_id}] Scope guardrail error (fail closed): {e}"
+        )
+        return _build_guardrail_block(
+            user_id, project_id, session_id, target_desc,
+            "Guardrail verification failed — cannot confirm target is authorized. "
+            "Please check agent logs and LLM configuration."
+        )
+
+    return None
 
 
 async def initialize_node(state: AgentState, config, *, llm, neo4j_creds) -> dict:
@@ -42,6 +111,13 @@ async def initialize_node(state: AgentState, config, *, llm, neo4j_creds) -> dic
     # Migrate legacy state if needed (backward compatibility)
     from state import migrate_legacy_objective
     state = migrate_legacy_objective(state)
+
+    # Scope guardrail: on first invocation, verify the project target is authorized
+    # Skip if already blocked (avoid redundant LLM calls on retry in same session)
+    if not state.get("execution_trace") and not state.get("_guardrail_blocked"):
+        guardrail_block = await _run_scope_guardrail(llm, user_id, project_id, session_id)
+        if guardrail_block is not None:
+            return guardrail_block
 
     # If resuming after approval/answer, preserve state for routing
     if state.get("user_approval_response") and state.get("phase_transition_pending"):

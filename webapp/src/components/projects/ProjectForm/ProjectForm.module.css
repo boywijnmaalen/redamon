@@ -470,3 +470,109 @@
   color: var(--text-tertiary);
   margin-top: 1px;
 }
+
+/* =============================================================================
+   Guardrail Block Modal
+   ============================================================================= */
+
+.guardrailOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: guardrailFadeIn 0.2s ease-out;
+}
+
+@keyframes guardrailFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes guardrailSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.guardrailModal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--status-error);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-6, 32px);
+  max-width: 440px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3, 12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 80, 80, 0.1);
+  animation: guardrailSlideIn 0.25s ease-out;
+}
+
+.guardrailIconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--status-error) 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--status-error);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.guardrailTitle {
+  font-size: var(--text-lg, 18px);
+  font-weight: var(--font-semibold, 600);
+  color: var(--status-error);
+  margin: 0;
+}
+
+.guardrailMessage {
+  font-size: var(--text-sm, 14px);
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: color-mix(in srgb, var(--status-error) 8%, transparent);
+  border-radius: var(--radius-default, 6px);
+  width: 100%;
+}
+
+.guardrailHint {
+  font-size: var(--text-xs, 12px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.guardrailButton {
+  margin-top: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-6, 32px);
+  background: var(--status-error);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-default, 6px);
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.guardrailButton:hover {
+  opacity: 0.9;
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Save, X, Loader2, AlertTriangle, Download } from 'lucide-react'
+import { Save, X, Loader2, AlertTriangle, Download, ShieldAlert } from 'lucide-react'
 import type { Project } from '@prisma/client'
 import { validateProjectForm } from '@/lib/validation'
 import styles from './ProjectForm.module.css'
@@ -113,6 +113,9 @@ export function ProjectForm({
   const [conflict, setConflict] = useState<ConflictResult | null>(null)
   const [isCheckingConflict, setIsCheckingConflict] = useState(false)
 
+  // Guardrail block modal
+  const [guardrailError, setGuardrailError] = useState<string | null>(null)
+
   // Extract project ID for edit mode (to exclude from conflict check)
   const projectId = (initialData as { id?: string } | undefined)?.id
 
@@ -205,7 +208,18 @@ export function ProjectForm({
       return
     }
 
-    await onSubmit(formData)
+    try {
+      await onSubmit(formData)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save project'
+      if (message.toLowerCase().includes('guardrail')) {
+        // Extract the reason after "Target blocked by guardrail: "
+        const reason = message.replace(/^Target blocked by guardrail:\s*/i, '')
+        setGuardrailError(reason || message)
+      } else {
+        alert(message)
+      }
+    }
   }
 
   // Determine if form can be submitted
@@ -365,6 +379,30 @@ export function ProjectForm({
         )}
           </div>
         </>
+      )}
+
+      {/* Guardrail block modal */}
+      {guardrailError && (
+        <div className={styles.guardrailOverlay} onClick={() => setGuardrailError(null)}>
+          <div className={styles.guardrailModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.guardrailIconWrapper}>
+              <ShieldAlert size={32} />
+            </div>
+            <h2 className={styles.guardrailTitle}>Target Blocked</h2>
+            <p className={styles.guardrailMessage}>{guardrailError}</p>
+            <p className={styles.guardrailHint}>
+              This target appears to be a well-known public service that you are unlikely authorized to test.
+              Please use a domain or IP range you own or have explicit permission to scan.
+            </p>
+            <button
+              type="button"
+              className={styles.guardrailButton}
+              onClick={() => setGuardrailError(null)}
+            >
+              Understood
+            </button>
+          </div>
+        </div>
       )}
     </form>
   )

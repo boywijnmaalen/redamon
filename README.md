@@ -950,6 +950,15 @@ Every project in RedAmon has **180+ configurable parameters** across 11 setting 
 >
 > **Complete user guide:** See the **[RedAmon Wiki](https://github.com/samugit83/redamon/wiki)** for step-by-step instructions on creating users, projects, running scans, and using the AI agent.
 
+### Target Guardrail
+
+RedAmon includes an LLM-based guardrail that prevents targeting unauthorized domains and IPs. It blocks government sites (`.gov`, `.mil`), major tech companies, financial institutions, social media platforms, and other well-known public services. The guardrail operates at two layers:
+
+- **Project creation** — the target is checked before the project is saved. If blocked, a modal shows the reason and the project is not created. Fails open if the LLM is unavailable.
+- **Agent initialization** — the agent independently verifies the target scope on first run and refuses to operate if it detects an unauthorized target. Fails closed.
+
+For IP mode, public IPs are resolved via reverse DNS before evaluation. Private/RFC1918 IPs are auto-allowed.
+
 ---
 
 ## System Architecture

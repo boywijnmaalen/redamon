@@ -426,6 +426,7 @@ class AgentState(TypedDict):
     _tool_result: Optional[dict]  # Result from tool execution
     _just_transitioned_to: Optional[str]  # Phase we just transitioned to (prevents re-requesting)
     _abort_transition: bool  # True when user aborted a phase transition (routes to generate_response)
+    _guardrail_blocked: bool  # True when project target was blocked by the scope guardrail
 
     # Attack Chain memory (structured LLM context, populated alongside graph writes)
     chain_findings_memory: List[dict]    # Accumulated findings for this session
@@ -548,6 +549,7 @@ def create_initial_state(
         "_tool_result": None,
         "_just_transitioned_to": None,
         "_abort_transition": False,
+        "_guardrail_blocked": False,
         # Attack Chain memory
         "chain_findings_memory": [],
         "chain_failures_memory": [],

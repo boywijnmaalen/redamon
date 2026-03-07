@@ -1,6 +1,6 @@
 'use client'
 
-import { Bot, Play, Download, Loader2, Terminal, Shield, Github, Target, Zap, MessageSquare, Pause, Square } from 'lucide-react'
+import { Bot, Play, Download, Loader2, Terminal, Shield, Github, Target, Zap, MessageSquare, Pause, Square, ShieldAlert } from 'lucide-react'
 import { StealthIcon } from '@/components/icons/StealthIcon'
 import { Toggle } from '@/components/ui'
 import type { ReconStatus, GvmStatus, GithubHuntStatus } from '@/lib/recon-types'
@@ -49,6 +49,10 @@ interface GraphToolbarProps {
   isGithubHuntLogsOpen?: boolean
   // Stealth mode
   stealthMode?: boolean
+  // Emergency Pause All
+  onEmergencyPauseAll?: () => void
+  isAnyPipelineRunning?: boolean
+  isEmergencyPausing?: boolean
   // Agent status
   agentActiveCount?: number
   agentConversations?: Array<{
@@ -104,6 +108,10 @@ export function GraphToolbar({
   isGithubHuntLogsOpen = false,
   // Stealth mode
   stealthMode = false,
+  // Emergency Pause All
+  onEmergencyPauseAll,
+  isAnyPipelineRunning = false,
+  isEmergencyPausing = false,
   // Agent status
   agentActiveCount = 0,
   agentConversations = [],
@@ -188,6 +196,21 @@ export function GraphToolbar({
           </div>
         </>
       )}
+
+      <div className={styles.divider} />
+      <button
+        className={styles.emergencyPauseButton}
+        onClick={onEmergencyPauseAll}
+        disabled={!isAnyPipelineRunning || isEmergencyPausing}
+        title="EMERGENCY PAUSE — Freeze all running containers immediately. Use if scanning or exploiting unwanted targets."
+      >
+        {isEmergencyPausing ? (
+          <Loader2 size={14} className={styles.spinner} />
+        ) : (
+          <ShieldAlert size={14} />
+        )}
+        <span>{isEmergencyPausing ? 'PAUSING...' : 'PAUSE ALL'}</span>
+      </button>
 
       <div className={styles.spacer} />
 

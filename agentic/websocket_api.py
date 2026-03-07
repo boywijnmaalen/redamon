@@ -240,6 +240,40 @@ class WebSocketManager:
         """Get number of active connections"""
         return len(self.active_connections)
 
+    async def stop_all(self) -> int:
+        """Emergency stop: cancel every running agent task and notify clients.
+
+        Returns the number of tasks that were cancelled.
+        """
+        stopped = 0
+        for session_key, task in list(self._active_tasks.items()):
+            if task and not task.done():
+                task.cancel()
+                stopped += 1
+                self._active_tasks.pop(session_key, None)
+
+                # Notify the connected client and mark as stopped
+                conn = self.active_connections.get(session_key)
+                if conn:
+                    conn._is_stopped = True
+                    try:
+                        await conn.send_message(MessageType.STOPPED, {
+                            "message": "Emergency stop — all agents halted",
+                            "iteration": 0,
+                            "phase": "informational",
+                        })
+                    except Exception:
+                        pass
+
+                # Mark conversation as not running in DB
+                if conn and conn.session_id:
+                    try:
+                        await update_conversation(conn.session_id, {"agentRunning": False})
+                    except Exception:
+                        pass
+
+        return stopped
+
 
 # =============================================================================
 # STREAMING CALLBACK INTERFACE

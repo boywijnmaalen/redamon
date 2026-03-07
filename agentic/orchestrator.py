@@ -261,6 +261,7 @@ class AgentOrchestrator:
                 "process_approval": "process_approval",
                 "process_answer": "process_answer",
                 "think": "think",
+                "generate_response": "generate_response",
             }
         )
 
@@ -317,7 +318,7 @@ class AgentOrchestrator:
     # =========================================================================
 
     def _route_after_initialize(self, state: AgentState) -> str:
-        """Route after initialization - process approval, process answer, or think."""
+        """Route after initialization - process approval, process answer, guardrail block, or think."""
         if state.get("user_approval_response") and state.get("phase_transition_pending"):
             logger.info("Routing to process_approval - approval response pending")
             return "process_approval"
@@ -325,6 +326,11 @@ class AgentOrchestrator:
         if state.get("user_question_answer") and state.get("pending_question"):
             logger.info("Routing to process_answer - question answer pending")
             return "process_answer"
+
+        # If guardrail blocked the target, skip straight to response
+        if state.get("_guardrail_blocked"):
+            logger.warning("Routing to generate_response - target blocked by guardrail")
+            return "generate_response"
 
         return "think"
 

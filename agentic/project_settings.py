@@ -155,6 +155,11 @@ def fetch_agent_settings(project_id: str, webapp_url: str) -> dict[str, Any]:
     settings['STEALTH_MODE'] = project.get('stealthMode', DEFAULT_AGENT_SETTINGS['STEALTH_MODE'])
     settings['PHISHING_SMTP_CONFIG'] = project.get('phishingSmtpConfig', DEFAULT_AGENT_SETTINGS['PHISHING_SMTP_CONFIG'])
 
+    # Target scope (used by guardrail checks inside the agent)
+    settings['TARGET_DOMAIN'] = project.get('targetDomain', '')
+    settings['IP_MODE'] = project.get('ipMode', False)
+    settings['TARGET_IPS'] = project.get('targetIps', [])
+
     logger.info(f"Loaded {len(settings)} agent settings for project {project_id}")
     return settings
 

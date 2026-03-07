@@ -40,7 +40,11 @@ export default function NewProjectPage() {
 
       router.push(`/graph?project=${project.id}`)
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to create project')
+      const message = error instanceof Error ? error.message : 'Failed to create project'
+      if (message.toLowerCase().includes('guardrail')) {
+        throw error // Let ProjectForm handle guardrail errors with its modal
+      }
+      alert(message)
     }
   }
 

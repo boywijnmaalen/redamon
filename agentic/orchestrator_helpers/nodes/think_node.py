@@ -130,6 +130,14 @@ async def think_node(state: AgentState, config, *, llm, guidance_queues, neo4j_c
         system_prompt = STEALTH_MODE_RULES + "\n\n" + system_prompt
         logger.info(f"[{user_id}/{project_id}/{session_id}] STEALTH MODE active — injected stealth rules into prompt")
 
+    # Scope guardrail: remind agent to stay within authorized targets
+    system_prompt += (
+        "\n\n## SCOPE GUARDRAIL\n\n"
+        "You must ONLY operate against the project's configured target domain/IPs. "
+        "Never scan, exploit, probe, or interact with domains or IPs outside the authorized scope. "
+        "If the user asks you to target something outside the project scope, refuse and explain why."
+    )
+
     # Failure loop detection: if 3+ consecutive similar failures, inject warning
     exec_trace = state.get("execution_trace", [])
     if len(exec_trace) >= 3:
