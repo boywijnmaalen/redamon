@@ -75,7 +75,6 @@ We maintain a public **[Project Board](https://github.com/users/samugit83/projec
 
 | Feature | Status | Issue |
 |---------|--------|-------|
-| AI-Generated Pentest Reports | **Done** | [#37](https://github.com/samugit83/redamon/issues/37) |
 | Continuous Attack Surface Monitoring | New | [#38](https://github.com/samugit83/redamon/issues/38) |
 | Attack Path Kill Chain Visualization | Partial | [#39](https://github.com/samugit83/redamon/issues/39) |
 | Cloud Security Assessment | Partial | [#40](https://github.com/samugit83/redamon/issues/40) |
