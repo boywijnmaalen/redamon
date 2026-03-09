@@ -2165,9 +2165,9 @@ export function AIAssistantDrawer({
   }
 
   // Group timeline items by their sequence (between messages)
-  const groupedChatItems: Array<{ type: 'message' | 'timeline' | 'file_download', content: Message | Array<ThinkingItem | ToolExecutionItem> | FileDownloadItem }> = []
+  const groupedChatItems: Array<{ type: 'message' | 'timeline' | 'file_download', content: Message | Array<ThinkingItem | ToolExecutionItem | PlanWaveItem> | FileDownloadItem }> = []
 
-  let currentTimelineGroup: Array<ThinkingItem | ToolExecutionItem> = []
+  let currentTimelineGroup: Array<ThinkingItem | ToolExecutionItem | PlanWaveItem> = []
 
   chatItems.forEach((item) => {
     if ('role' in item) {

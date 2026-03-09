@@ -40,6 +40,9 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
+# Pre-create reports dir so the named volume inherits correct ownership
+RUN mkdir -p /data/reports && chown nextjs:nodejs /data/reports
+
 # Leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
