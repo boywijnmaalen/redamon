@@ -107,13 +107,13 @@ Videos, writeups, and real-world experiences from security professionals using R
 <table>
 <tr>
 <td align="center" width="50%">
-<img src="assets/samuele.jpeg" alt="Samuele Giampieri" width="120" style="border-radius: 50%;"/><br/>
+<img src="assets/samuele.png" alt="Samuele Giampieri" width="120"/><br/>
 <b>Samuele Giampieri</b> — Creator & Lead Maintainer<br/><br/>
 Fullstack Developer & AI specialist with 15+ years of experience. Builds scalable web applications and AI-driven solutions using LangChain, LangGraph, and hybrid RAG architectures with vector and graph databases. Creator of RedAmon and founder of Devergo Labs.<br/><br/>
 <a href="https://www.linkedin.com/in/samuele-giampieri-b1b67597/">LinkedIn</a> · <a href="https://github.com/samugit83">GitHub</a> · <a href="https://www.devergolabs.com/">Devergo Labs</a> · <a href="https://www.linkedin.com/newsletters/the-gradient-path-7337462379640717312/">The Gradient Path Newsletter</a>
 </td>
 <td align="center" width="50%">
-<img src="assets/ritesh.jpeg" alt="Ritesh Gohil" width="120" style="border-radius: 50%;"/><br/>
+<img src="assets/ritesh.png" alt="Ritesh Gohil" width="120"/><br/>
 <b>Ritesh Gohil (L4stPL4Y3R)</b> — Co-Maintainer<br/><br/>
 Information Security Engineer at Ryanair with a Master's in Cyber Security. Secured 200+ web and mobile applications, published 9 CVEs in MITRE, and received honorable mentions from Google and Apple. Holds AWS Security Specialty, eWPTXv2, eCPPTv2, CRTP, and CEH certifications.<br/><br/>
 <a href="https://www.linkedin.com/in/riteshgohil25/">LinkedIn</a> · <a href="https://github.com/L4stPL4Y3R">GitHub</a>
@@ -242,6 +242,8 @@ docker compose restart kali-sandbox       # MCP tool servers
 
 No rebuild needed — just restart.
 
+> For a complete development reference — hot-reload rules, common commands, important rules, and AI-assisted coding guidelines — see the **[Developer Guide](readmes/README.DEV.md)**.
+>
 > If you need to update RedAmon to a new version, see [Updating to a New Version](#updating-to-a-new-version).
 
 ---
