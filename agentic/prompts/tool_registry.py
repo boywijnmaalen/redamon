@@ -20,6 +20,29 @@ TOOL_REGISTRY = {
             '   - Skip if you already know which specific tool to use'
         ),
     },
+    "github_repo": {
+        "purpose": "GitHub repository access",
+        "when_to_use": "Browse target repos, read source code, search for secrets/vulns in code",
+        "args_format": '"action": "list_repos|get_contents|search_code|get_commits|get_issues|get_pulls", "repo": "owner/repo", "path": "file/path", "query": "search terms", "ref": "branch"',
+        "description": (
+            '**github_repo** (GitHub Repository Access)\n'
+            '   - Access GitHub repos using the project\'s configured access token\n'
+            '   - **USE FOR:** Reading source code, searching for vulnerabilities in code,\n'
+            '     finding hardcoded secrets, reviewing commit history for leaked credentials,\n'
+            '     understanding application architecture from source\n'
+            '   - **Actions:**\n'
+            '     - `list_repos` — List repositories for the configured target org/user\n'
+            '     - `get_contents` — Read file/directory contents (requires repo, path)\n'
+            '     - `search_code` — Search code across repos (requires query)\n'
+            '     - `get_commits` — View recent commits (requires repo)\n'
+            '     - `get_issues` — List open issues (requires repo)\n'
+            '     - `get_pulls` — List open PRs (requires repo)\n'
+            '   - Example: action="list_repos"\n'
+            '   - Example: action="get_contents", repo="org/webapp", path="config/database.yml"\n'
+            '   - Example: action="search_code", query="password OR secret OR api_key"\n'
+            '   - Example: action="get_commits", repo="org/webapp", path=".env"'
+        ),
+    },
     "web_search": {
         "purpose": "Web search (Tavily)",
         "when_to_use": "Research CVEs, exploits, service vulns",

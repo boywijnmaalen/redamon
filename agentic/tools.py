@@ -403,6 +403,168 @@ Cypher Query:"""
 
 
 # =============================================================================
+# GITHUB TOOL MANAGER
+# =============================================================================
+
+class GitHubToolManager:
+    """Provides GitHub API access using the project's configured access token."""
+
+    def get_tool(self) -> Optional[callable]:
+        """
+        Set up and return the GitHub API tool.
+
+        The access token is read dynamically from project settings on each
+        invocation, so it always reflects the latest value saved in the
+        dashboard.
+
+        Returns:
+            The github_repo tool function, or None if setup fails.
+        """
+
+        @tool
+        async def github_repo(action: str, repo: str = "", path: str = "", query: str = "", ref: str = "main") -> str:
+            """
+            Interact with GitHub repositories using the project's configured access token.
+
+            Actions:
+              list_repos   – List repositories for the target org/user.
+              get_contents – Get file or directory contents (requires repo, path; optional ref).
+              search_code  – Search code across the target org's repos (requires query).
+              get_commits  – Get recent commits for a repo (requires repo; optional path).
+              get_issues   – List open issues for a repo (requires repo).
+              get_pulls    – List open pull requests for a repo (requires repo).
+
+            Args:
+                action: One of the actions listed above.
+                repo:   Repository name (e.g. "owner/repo").
+                path:   File or directory path within the repo.
+                query:  Search query string (for search_code).
+                ref:    Branch or commit ref (default "main").
+
+            Returns:
+                JSON-formatted results from the GitHub API.
+            """
+            token = get_setting('GITHUB_ACCESS_TOKEN', '')
+            if not token:
+                return "Error: No GitHub access token configured. Set it in the project settings under 'GitHub Secret Hunt'."
+
+            org = get_setting('GITHUB_TARGET_ORG', '')
+
+            headers = {
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "RedAmon/1.0",
+            }
+
+            import json
+
+            try:
+                async with httpx.AsyncClient(timeout=30, headers=headers) as client:
+                    if action == "list_repos":
+                        target = org or repo.split("/")[0] if repo else ""
+                        if not target:
+                            return "Error: No target org configured and no repo specified."
+                        # Try as org first, fall back to user
+                        resp = await client.get(
+                            f"https://api.github.com/orgs/{target}/repos",
+                            params={"per_page": 100, "sort": "updated"},
+                        )
+                        if resp.status_code == 404:
+                            resp = await client.get(
+                                f"https://api.github.com/users/{target}/repos",
+                                params={"per_page": 100, "sort": "updated"},
+                            )
+                        resp.raise_for_status()
+                        repos = [{"name": r["full_name"], "description": r.get("description", ""), "language": r.get("language", ""), "updated": r.get("updated_at", "")} for r in resp.json()]
+                        return json.dumps(repos[:50], indent=2)
+
+                    elif action == "get_contents":
+                        if not repo or not path:
+                            return "Error: 'repo' and 'path' are required for get_contents."
+                        resp = await client.get(
+                            f"https://api.github.com/repos/{repo}/contents/{path.lstrip('/')}",
+                            params={"ref": ref},
+                        )
+                        resp.raise_for_status()
+                        data = resp.json()
+                        if isinstance(data, list):
+                            # Directory listing
+                            items = [{"name": f["name"], "type": f["type"], "size": f.get("size", 0)} for f in data]
+                            return json.dumps(items, indent=2)
+                        else:
+                            # File contents
+                            import base64
+                            if data.get("encoding") == "base64" and data.get("content"):
+                                content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                                # Truncate large files
+                                if len(content) > 10000:
+                                    content = content[:10000] + f"\n\n... (truncated, {len(content)} chars total)"
+                                return content
+                            return json.dumps(data, indent=2)
+
+                    elif action == "search_code":
+                        if not query:
+                            return "Error: 'query' is required for search_code."
+                        q = f"{query} org:{org}" if org else query
+                        resp = await client.get(
+                            "https://api.github.com/search/code",
+                            params={"q": q, "per_page": 20},
+                        )
+                        resp.raise_for_status()
+                        items = resp.json().get("items", [])
+                        results = [{"repo": i["repository"]["full_name"], "path": i["path"], "url": i["html_url"]} for i in items]
+                        return json.dumps(results, indent=2)
+
+                    elif action == "get_commits":
+                        if not repo:
+                            return "Error: 'repo' is required for get_commits."
+                        params = {"per_page": 20}
+                        if path:
+                            params["path"] = path
+                        resp = await client.get(
+                            f"https://api.github.com/repos/{repo}/commits",
+                            params=params,
+                        )
+                        resp.raise_for_status()
+                        commits = [{"sha": c["sha"][:7], "message": c["commit"]["message"].split("\n")[0], "author": c["commit"]["author"]["name"], "date": c["commit"]["author"]["date"]} for c in resp.json()]
+                        return json.dumps(commits, indent=2)
+
+                    elif action == "get_issues":
+                        if not repo:
+                            return "Error: 'repo' is required for get_issues."
+                        resp = await client.get(
+                            f"https://api.github.com/repos/{repo}/issues",
+                            params={"per_page": 20, "state": "open"},
+                        )
+                        resp.raise_for_status()
+                        issues = [{"number": i["number"], "title": i["title"], "labels": [l["name"] for l in i.get("labels", [])], "created": i["created_at"]} for i in resp.json()]
+                        return json.dumps(issues, indent=2)
+
+                    elif action == "get_pulls":
+                        if not repo:
+                            return "Error: 'repo' is required for get_pulls."
+                        resp = await client.get(
+                            f"https://api.github.com/repos/{repo}/pulls",
+                            params={"per_page": 20, "state": "open"},
+                        )
+                        resp.raise_for_status()
+                        prs = [{"number": p["number"], "title": p["title"], "branch": p["head"]["ref"], "created": p["created_at"]} for p in resp.json()]
+                        return json.dumps(prs, indent=2)
+
+                    else:
+                        return f"Error: Unknown action '{action}'. Valid actions: list_repos, get_contents, search_code, get_commits, get_issues, get_pulls"
+
+            except httpx.HTTPStatusError as e:
+                return f"GitHub API error ({e.response.status_code}): {e.response.text[:500]}"
+            except Exception as e:
+                logger.error(f"GitHub tool error: {e}")
+                return f"GitHub API error: {str(e)}"
+
+        logger.info("GitHub repo tool configured (token loaded dynamically from project settings)")
+        return github_repo
+
+
+# =============================================================================
 # WEB SEARCH TOOL MANAGER
 # =============================================================================
 
@@ -950,10 +1112,14 @@ class PhaseAwareToolExecutor:
         web_search_tool: Optional[callable] = None,
         shodan_tool: Optional[callable] = None,
         google_dork_tool: Optional[callable] = None,
+        github_tool: Optional[callable] = None,
     ):
         self.mcp_manager = mcp_manager
         self.graph_tool = graph_tool
         self.web_search_tool = web_search_tool
+        self.shodan_tool = shodan_tool
+        self.google_dork_tool = google_dork_tool
+        self.github_tool = github_tool
         self._all_tools: Dict[str, callable] = {}
 
         # Register graph tool
@@ -971,6 +1137,10 @@ class PhaseAwareToolExecutor:
         # Register Google dork tool
         if google_dork_tool:
             self._all_tools["google_dork"] = google_dork_tool
+
+        # Register GitHub tool
+        if github_tool:
+            self._all_tools["github_repo"] = github_tool
 
     def register_mcp_tools(self, tools: List) -> None:
         """Register MCP tools after they're loaded."""
@@ -1096,6 +1266,9 @@ class PhaseAwareToolExecutor:
                 # Google dork tool expects 'query' argument
                 query = tool_args.get("query", "")
                 output = await tool.ainvoke(query)
+            elif tool_name == "github_repo":
+                # GitHub tool expects structured arguments
+                output = await tool.ainvoke(tool_args)
             else:
                 # MCP tools - invoke with the appropriate argument
                 output = await tool.ainvoke(tool_args)

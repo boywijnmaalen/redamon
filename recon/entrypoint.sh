@@ -121,8 +121,8 @@ IMAGES=(
     "projectdiscovery/katana:latest"
     "projectdiscovery/nuclei:latest"
     "projectdiscovery/subfinder:latest"
-    "sxcurity/gau:latest"
     "caffix/amass:latest"
+    # sxcurity/gau:latest omitted — GAU is disabled by default and the image is unreliable to pull. The runtime code pulls on-demand if GAU is enabled.
 )
 
 for IMAGE in "${IMAGES[@]}"; do

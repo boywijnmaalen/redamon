@@ -54,14 +54,24 @@ export function TargetSection({ data, updateField, mode = 'create' }: TargetSect
   // Check if root domain is included in the list
   const includesRootDomain = useMemo(() => data.subdomainList.includes('.'), [data.subdomainList])
 
-  // Display value without dots
+  // Local state for the raw text so commas aren't eaten on every keystroke
+  const [prefixDraft, setPrefixDraft] = useState<string | null>(null)
+
+  // Display value without dots (used when not actively editing)
   const displayPrefixes = useMemo(() => toDisplayPrefixes(data.subdomainList), [data.subdomainList])
 
   // Display value for IP textarea
   const displayIps = useMemo(() => (data.targetIps || []).join('\n'), [data.targetIps])
 
   const handlePrefixesChange = (value: string) => {
-    updateField('subdomainList', toStoredPrefixes(value, includesRootDomain))
+    setPrefixDraft(value)
+  }
+
+  const handlePrefixesBlur = () => {
+    if (prefixDraft !== null) {
+      updateField('subdomainList', toStoredPrefixes(prefixDraft, includesRootDomain))
+      setPrefixDraft(null)
+    }
   }
 
   const handleRootDomainToggle = (checked: boolean) => {
@@ -193,8 +203,9 @@ export function TargetSection({ data, updateField, mode = 'create' }: TargetSect
                 <input
                   type="text"
                   className="textInput"
-                  value={displayPrefixes}
+                  value={prefixDraft !== null ? prefixDraft : displayPrefixes}
                   onChange={(e) => handlePrefixesChange(e.target.value)}
+                  onBlur={handlePrefixesBlur}
                   placeholder="www, api, admin (comma-separated)"
                   disabled={isLocked}
                   title={isLocked ? 'Subdomain list cannot be changed after creation. Create a new project instead.' : undefined}

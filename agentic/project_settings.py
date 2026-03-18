@@ -82,6 +82,7 @@ DEFAULT_AGENT_SETTINGS: dict[str, Any] = {
         'web_search': ['informational', 'exploitation', 'post_exploitation'],
         'shodan': ['informational', 'exploitation'],
         'google_dork': ['informational'],
+        'github_repo': ['informational', 'exploitation', 'post_exploitation'],
     },
 
     # Kali Shell Library Installation
@@ -323,6 +324,11 @@ def fetch_agent_settings(project_id: str, webapp_url: str) -> dict[str, Any]:
     else:
         settings['USER_LLM_PROVIDERS'] = []
         settings['USER_SETTINGS'] = {}
+
+    # GitHub access (from project's GitHub Secret Hunt config)
+    settings['GITHUB_ACCESS_TOKEN'] = project.get('githubAccessToken', '')
+    settings['GITHUB_TARGET_ORG'] = project.get('githubTargetOrg', '')
+    settings['GITHUB_TARGET_REPOS'] = project.get('githubTargetRepos', '')
 
     logger.info(f"Loaded {len(settings)} agent settings for project {project_id}")
     return settings

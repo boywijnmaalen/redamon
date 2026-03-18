@@ -27,6 +27,7 @@ from tools import (
     WebSearchToolManager,
     ShodanToolManager,
     GoogleDorkToolManager,
+    GitHubToolManager,
     PhaseAwareToolExecutor,
 )
 from orchestrator_helpers import (
@@ -261,10 +262,14 @@ class AgentOrchestrator:
         self._google_dork_manager = GoogleDorkToolManager()
         google_dork_tool = self._google_dork_manager.get_tool()
 
+        # Setup GitHub API tool (uses token from project settings)
+        github_manager = GitHubToolManager()
+        github_tool = github_manager.get_tool()
+
         # Create phase-aware tool executor
         self.tool_executor = PhaseAwareToolExecutor(
             mcp_manager, graph_tool, web_search_tool,
-            shodan_tool, google_dork_tool,
+            shodan_tool, google_dork_tool, github_tool,
         )
         self.tool_executor.register_mcp_tools(mcp_tools)
 
